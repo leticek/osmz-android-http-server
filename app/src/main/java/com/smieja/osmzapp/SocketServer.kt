@@ -1,24 +1,15 @@
 package com.smieja.osmzapp
 
-import android.content.Context
 import android.util.Log
 import java.net.ServerSocket
-import java.net.Socket
-import java.sql.Timestamp
-import java.time.Instant
 
-class SocketServer(context: Context, private val port: Int = 12345) {
-    private val responseContent: String by lazy {
-        context.assets.open("index.html").bufferedReader().readText()
-    }
 
-    private val response =
-        "HTTP/1.0 200 OK\nContent-Type: text/html; charset=UTF-8\nContent-Length: ${responseContent.length}\nDate: ${
-            Timestamp.from(Instant.now())
-        }\n"
-
+class SocketServer(private val port: Int = 12345) {
     private var serverSocket: ServerSocket? = null
     private var isRunning = false
+    private val responder: Responder by lazy {
+        Responder()
+    }
 
     fun run() {
         when (isRunning) {
@@ -29,9 +20,7 @@ class SocketServer(context: Context, private val port: Int = 12345) {
                 isRunning = true
                 while (isRunning) {
                     Log.i("SERVER", "Socket Waiting for connection")
-                    val s = serverSocket!!.accept()
-                    s.dumpRequest()
-                    s.respond()
+                    responder.processRequest(serverSocket!!.accept())
                 }
             }.exceptionOrNull().let {
                 when (serverSocket?.isClosed) {
@@ -43,7 +32,6 @@ class SocketServer(context: Context, private val port: Int = 12345) {
                 }
             }
         }
-
     }
 
     fun close() {
@@ -55,25 +43,4 @@ class SocketServer(context: Context, private val port: Int = 12345) {
         }
         isRunning = false
     }
-
-    private fun Socket.respond() {
-        this.getOutputStream().bufferedWriter().use {
-            it.write(response.addContent(responseContent))
-        }
-        this.close()
-        Log.i("SERVER", "Socket Closed")
-    }
-
-    private fun Socket.dumpRequest() = this.getInputStream().bufferedReader().let {
-        var line: String
-        while (true) {
-            line = it.readLine()
-            when (line.length) {
-                0 -> return@let
-                else -> Log.i("REQUEST_DUMP", line)
-            }
-        }
-    }
-
-    private fun String.addContent(content: String) = this + "\n" + content
 }

@@ -12,7 +12,7 @@ import kotlin.coroutines.CoroutineContext
 
 class MainActivity : AppCompatActivity() {
     private val socketServer: SocketServer by lazy {
-        SocketServer(context = applicationContext)
+        SocketServer()
     }
     private val scope = CoroutineScope(Dispatchers.IO)
 
